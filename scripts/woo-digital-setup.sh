@@ -1,11 +1,13 @@
 #!/bin/bash
 # ============================================================
 # WooCommerce Digital Store — WP-CLI Setup Script
-# Run: docker compose run --rm wpcli bash /scripts/woo-digital-setup.sh
+# Run trên server (SSH vào, cd đến thư mục WordPress):
+#   cd /home/your-domain.com/public_html
+#   bash /path/to/scripts/woo-digital-setup.sh
 # ============================================================
 set -e
 
-WP="wp --allow-root --path=/var/www/html"
+WP="wp --allow-root"
 echo "🚀 Starting WooCommerce Digital Store configuration..."
 
 # ── 1. Store identity ─────────────────────────────────────────
