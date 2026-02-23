@@ -175,18 +175,34 @@ function ds_render_homepage(): string {
         <div class="ds-hero__inner">
             <span class="ds-hero__badge">✨ Premium Digital Products</span>
             <h1 class="ds-hero__title">
-                Reviews & <span>Digital Products</span> You Can Trust
+                Reviews &amp; <span>Digital Products</span><br>You Can Trust
             </h1>
             <p class="ds-hero__subtitle">
                 In-depth reviews, honest recommendations, and premium digital downloads — all in one place.
             </p>
             <div class="ds-hero__actions">
-                <a href="<?php echo esc_url( get_permalink( wc_get_page_id( 'shop' ) ) ); ?>" class="ds-btn ds-btn--primary">
+                <a href="<?php echo esc_url( get_permalink( wc_get_page_id( 'shop' ) ) ); ?>" class="ds-btn ds-btn--primary ds-btn--lg">
                     Browse Products →
                 </a>
-                <a href="<?php echo esc_url( get_permalink( get_option( 'page_for_posts' ) ) ?: home_url( '/blog/' ) ); ?>" class="ds-btn ds-btn--outline">
+                <a href="<?php echo esc_url( get_permalink( get_option( 'page_for_posts' ) ) ?: home_url( '/blog/' ) ); ?>" class="ds-btn ds-btn--outline ds-btn--lg">
                     Read Reviews
                 </a>
+            </div>
+            <div class="ds-hero__stats">
+                <div class="ds-hero__stat">
+                    <strong>500+</strong>
+                    <span>Digital Products</span>
+                </div>
+                <div class="ds-hero__stat-divider"></div>
+                <div class="ds-hero__stat">
+                    <strong>10k+</strong>
+                    <span>Happy Customers</span>
+                </div>
+                <div class="ds-hero__stat-divider"></div>
+                <div class="ds-hero__stat">
+                    <strong>4.9★</strong>
+                    <span>Average Rating</span>
+                </div>
             </div>
         </div>
     </section>
@@ -196,19 +212,31 @@ function ds_render_homepage(): string {
         <div class="ds-trust-strip__inner">
             <div class="ds-trust-strip__item">
                 <span class="ds-trust-strip__icon">⚡</span>
-                <div><strong>Instant Download</strong><span>Access files right after payment</span></div>
+                <div>
+                    <strong>Instant Download</strong>
+                    <span>Access your files immediately after payment</span>
+                </div>
             </div>
             <div class="ds-trust-strip__item">
                 <span class="ds-trust-strip__icon">🔒</span>
-                <div><strong>Secure Checkout</strong><span>256-bit SSL encrypted</span></div>
+                <div>
+                    <strong>Secure Checkout</strong>
+                    <span>256-bit SSL — your data is safe with us</span>
+                </div>
             </div>
             <div class="ds-trust-strip__item">
                 <span class="ds-trust-strip__icon">💳</span>
-                <div><strong>PayPal Protected</strong><span>Buyer protection included</span></div>
+                <div>
+                    <strong>PayPal Protected</strong>
+                    <span>Full buyer protection on every order</span>
+                </div>
             </div>
             <div class="ds-trust-strip__item">
                 <span class="ds-trust-strip__icon">🔄</span>
-                <div><strong>30-Day Refund</strong><span>No questions asked</span></div>
+                <div>
+                    <strong>30-Day Refund</strong>
+                    <span>Not happy? Get a full refund, no questions</span>
+                </div>
             </div>
         </div>
     </section>

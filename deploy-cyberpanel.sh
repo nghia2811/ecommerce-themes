@@ -6,37 +6,59 @@
 # Cách dùng:
 #   chmod +x deploy-cyberpanel.sh
 #   ./deploy-cyberpanel.sh
+#
+# Yêu cầu: sshpass
+#   Ubuntu/Debian : sudo apt install sshpass
+#   macOS         : brew install hudochenkov/sshpass/sshpass
+#   Windows (WSL) : sudo apt install sshpass
 # ============================================================
 
 set -e
 
-# ── CẤU HÌNH — Sửa các giá trị này ──────────────────────────
+# ── CẤU HÌNH ─────────────────────────────────────────────────
 SERVER_IP="212.56.45.225"
-SERVER_USER="root"          # Hoặc user SSH của bạn
+SERVER_USER="admin"
+SERVER_PASS="A1EOOtG6XnH5qoHq"
 DOMAIN="register-global.com"
-WP_PATH="/home/${DOMAIN}/public_html"   # Đường dẫn WordPress trên CyberPanel
+WP_PATH="/home/${DOMAIN}/public_html"
 # ─────────────────────────────────────────────────────────────
 
 THEME_LOCAL="./src/themes/digital-store"
 MUPLUGIN_LOCAL="./src/mu-plugins/digital-store.php"
 
+# SSH/SCP wrapper dùng sshpass + tắt host key prompt
+SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+SSHPASS="sshpass -p ${SERVER_PASS}"
+
+# ── Kiểm tra sshpass đã cài chưa ─────────────────────────────
+if ! command -v sshpass &>/dev/null; then
+  echo "❌ Thiếu sshpass. Cài bằng:"
+  echo "   Ubuntu/Debian : sudo apt install sshpass"
+  echo "   macOS         : brew install hudochenkov/sshpass/sshpass"
+  exit 1
+fi
+
 echo "🚀 Bắt đầu deploy lên ${SERVER_IP} (${DOMAIN})..."
+echo "   User: ${SERVER_USER}"
+echo ""
 
 # 1. Upload child theme
-echo ""
 echo "📦 Upload theme digital-store..."
-scp -r "${THEME_LOCAL}" "${SERVER_USER}@${SERVER_IP}:${WP_PATH}/wp-content/themes/"
+${SSHPASS} scp ${SSH_OPTS} -r "${THEME_LOCAL}" \
+  "${SERVER_USER}@${SERVER_IP}:${WP_PATH}/wp-content/themes/"
 
 # 2. Upload MU-Plugin
 echo ""
 echo "🔌 Upload MU-Plugin digital-store.php..."
-ssh "${SERVER_USER}@${SERVER_IP}" "mkdir -p ${WP_PATH}/wp-content/mu-plugins"
-scp "${MUPLUGIN_LOCAL}" "${SERVER_USER}@${SERVER_IP}:${WP_PATH}/wp-content/mu-plugins/"
+${SSHPASS} ssh ${SSH_OPTS} "${SERVER_USER}@${SERVER_IP}" \
+  "mkdir -p ${WP_PATH}/wp-content/mu-plugins"
+${SSHPASS} scp ${SSH_OPTS} "${MUPLUGIN_LOCAL}" \
+  "${SERVER_USER}@${SERVER_IP}:${WP_PATH}/wp-content/mu-plugins/"
 
 # 3. Fix quyền thư mục
 echo ""
 echo "🔒 Cấp quyền đúng cho files..."
-ssh "${SERVER_USER}@${SERVER_IP}" bash <<EOF
+${SSHPASS} ssh ${SSH_OPTS} "${SERVER_USER}@${SERVER_IP}" bash <<EOF
   chown -R nobody:nogroup ${WP_PATH}/wp-content/themes/digital-store 2>/dev/null || \
   chown -R www-data:www-data ${WP_PATH}/wp-content/themes/digital-store 2>/dev/null || true
 
