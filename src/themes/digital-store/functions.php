@@ -2,10 +2,8 @@
 /**
  * Digital Store Theme — functions.php
  *
- * Comprehensive WooCommerce hook customizations for:
- *  - Product detail page (SaaS-style layout)
- *  - Checkout page (one-column, minimal)
- *  - Theme setup, assets, and layout tweaks
+ * Blog reviews + digital products WooCommerce child theme.
+ * SEO-optimised for Google crawling.
  *
  * @package DigitalStore
  */
@@ -17,7 +15,6 @@ defined( 'ABSPATH' ) || exit;
 // ════════════════════════════════════════════════════════════════
 
 add_action( 'after_setup_theme', function () {
-    // Inherit parent (Storefront) translations
     load_child_theme_textdomain( 'digital-store', get_stylesheet_directory() . '/languages' );
 
     add_theme_support( 'title-tag' );
@@ -33,99 +30,312 @@ add_action( 'after_setup_theme', function () {
     ] );
 } );
 
-// ── Enqueue child theme CSS (after Storefront parent) ────────────
+// ── Enqueue CSS — high priority to override Storefront ──
 add_action( 'wp_enqueue_scripts', function () {
-    $parent_style = 'storefront-style';
-    wp_enqueue_style( $parent_style, get_template_directory_uri() . '/style.css' );
-    wp_enqueue_style(
-        'digital-store',
-        get_stylesheet_uri(),
-        [ $parent_style ],
+    wp_dequeue_style( 'storefront-style' );
+    wp_dequeue_style( 'storefront-fonts' );
+
+    wp_enqueue_style( 'storefront-parent',
+        get_template_directory_uri() . '/style.css', [],
+        wp_get_theme()->parent()->get( 'Version' )
+    );
+    wp_enqueue_style( 'digital-store',
+        get_stylesheet_uri(), [ 'storefront-parent' ],
         wp_get_theme()->get( 'Version' )
     );
-}, 20 );
+    wp_enqueue_style( 'ds-google-fonts',
+        'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+        [], null
+    );
+}, 999 );
 
-// ═══════════════════════════════════════════════════════════════════
-// B. SINGLE PRODUCT PAGE — WooCommerce Action Hooks
-//
-//  Hook Execution Order (default priorities):
-//  woocommerce_before_single_product          (1)
-//  woocommerce_before_single_product_summary  (10,20,30)
-//  woocommerce_single_product_summary:
-//    - woocommerce_template_single_title       (5)
-//    - woocommerce_template_single_rating      (10)
-//    - woocommerce_template_single_price       (10)
-//    - woocommerce_template_single_excerpt     (20)
-//    - woocommerce_template_single_add_to_cart (30)
-//    - woocommerce_template_single_meta        (40)
-//    - woocommerce_template_single_sharing     (50)
-//  woocommerce_after_single_product_summary   (10)
-//  woocommerce_after_single_product           (10)
-// ═══════════════════════════════════════════════════════════════════
-
-// B1. Remove elements from the default product summary
+// ── Disable Storefront homepage defaults ──
 add_action( 'init', function () {
-    // Remove rating stars under the title (design choice: keep page clean)
+    remove_action( 'homepage', 'storefront_homepage_content', 10 );
+    remove_action( 'homepage', 'storefront_product_categories', 20 );
+    remove_action( 'homepage', 'storefront_recent_products', 30 );
+    remove_action( 'homepage', 'storefront_featured_products', 40 );
+    remove_action( 'homepage', 'storefront_popular_products', 50 );
+    remove_action( 'homepage', 'storefront_on_sale_products', 60 );
+    remove_action( 'homepage', 'storefront_best_selling_products', 70 );
+} );
+
+// ════════════════════════════════════════════════════════════════
+// SEO — Schema.org structured data
+// ════════════════════════════════════════════════════════════════
+
+add_action( 'wp_head', function () {
+    // Website schema
+    if ( is_front_page() ) {
+        $schema = [
+            '@context'    => 'https://schema.org',
+            '@type'       => 'WebSite',
+            'name'        => get_bloginfo( 'name' ),
+            'description' => get_bloginfo( 'description' ),
+            'url'         => home_url( '/' ),
+            'potentialAction' => [
+                '@type'       => 'SearchAction',
+                'target'      => home_url( '/?s={search_term_string}' ),
+                'query-input' => 'required name=search_term_string',
+            ],
+        ];
+        printf( '<script type="application/ld+json">%s</script>' . "\n", wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) );
+    }
+
+    // Single product schema
+    if ( function_exists( 'is_product' ) && is_product() ) {
+        global $product;
+        if ( $product ) {
+            $schema = [
+                '@context'    => 'https://schema.org',
+                '@type'       => 'Product',
+                'name'        => $product->get_name(),
+                'description' => wp_strip_all_tags( $product->get_short_description() ),
+                'image'       => wp_get_attachment_url( $product->get_image_id() ),
+                'offers'      => [
+                    '@type'         => 'Offer',
+                    'price'         => $product->get_price(),
+                    'priceCurrency' => get_woocommerce_currency(),
+                    'availability'  => $product->is_in_stock()
+                        ? 'https://schema.org/InStock'
+                        : 'https://schema.org/OutOfStock',
+                    'url'           => get_permalink(),
+                ],
+            ];
+            printf( '<script type="application/ld+json">%s</script>' . "\n", wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) );
+        }
+    }
+
+    // Blog post schema
+    if ( is_singular( 'post' ) ) {
+        global $post;
+        $schema = [
+            '@context'      => 'https://schema.org',
+            '@type'         => 'Article',
+            'headline'      => get_the_title(),
+            'description'   => wp_strip_all_tags( get_the_excerpt() ),
+            'datePublished' => get_the_date( 'c' ),
+            'dateModified'  => get_the_modified_date( 'c' ),
+            'author'        => [
+                '@type' => 'Person',
+                'name'  => get_the_author(),
+            ],
+            'publisher'     => [
+                '@type' => 'Organization',
+                'name'  => get_bloginfo( 'name' ),
+            ],
+            'mainEntityOfPage' => get_permalink(),
+        ];
+        if ( has_post_thumbnail() ) {
+            $schema['image'] = get_the_post_thumbnail_url( $post, 'large' );
+        }
+        printf( '<script type="application/ld+json">%s</script>' . "\n", wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) );
+    }
+}, 5 );
+
+// SEO meta description
+add_action( 'wp_head', function () {
+    if ( is_front_page() ) {
+        $desc = get_bloginfo( 'description' );
+    } elseif ( is_singular() ) {
+        $desc = wp_strip_all_tags( get_the_excerpt() );
+    } elseif ( function_exists( 'is_shop' ) && is_shop() ) {
+        $desc = 'Browse and download premium digital products instantly.';
+    } else {
+        return;
+    }
+    if ( $desc ) {
+        printf( '<meta name="description" content="%s" />' . "\n", esc_attr( wp_trim_words( $desc, 30 ) ) );
+    }
+}, 1 );
+
+// Open Graph basic tags
+add_action( 'wp_head', function () {
+    if ( ! is_singular() ) return;
+    echo '<meta property="og:title" content="' . esc_attr( get_the_title() ) . '" />' . "\n";
+    echo '<meta property="og:url" content="' . esc_url( get_permalink() ) . '" />' . "\n";
+    echo '<meta property="og:site_name" content="' . esc_attr( get_bloginfo( 'name' ) ) . '" />' . "\n";
+    echo '<meta property="og:type" content="' . ( is_singular( 'post' ) ? 'article' : 'website' ) . '" />' . "\n";
+    if ( has_post_thumbnail() ) {
+        echo '<meta property="og:image" content="' . esc_url( get_the_post_thumbnail_url( null, 'large' ) ) . '" />' . "\n";
+    }
+}, 2 );
+
+// ════════════════════════════════════════════════════════════════
+// HOMEPAGE SHORTCODE — [ds_homepage]
+// ════════════════════════════════════════════════════════════════
+
+add_shortcode( 'ds_homepage', 'ds_render_homepage' );
+function ds_render_homepage(): string {
+    ob_start();
+    ?>
+
+    <!-- Hero -->
+    <section class="ds-hero">
+        <div class="ds-hero__inner">
+            <span class="ds-hero__badge">✨ Premium Digital Products</span>
+            <h1 class="ds-hero__title">
+                Reviews & <span>Digital Products</span> You Can Trust
+            </h1>
+            <p class="ds-hero__subtitle">
+                In-depth reviews, honest recommendations, and premium digital downloads — all in one place.
+            </p>
+            <div class="ds-hero__actions">
+                <a href="<?php echo esc_url( get_permalink( wc_get_page_id( 'shop' ) ) ); ?>" class="ds-btn ds-btn--primary">
+                    Browse Products →
+                </a>
+                <a href="<?php echo esc_url( get_permalink( get_option( 'page_for_posts' ) ) ?: home_url( '/blog/' ) ); ?>" class="ds-btn ds-btn--outline">
+                    Read Reviews
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trust -->
+    <section class="ds-trust-strip">
+        <div class="ds-trust-strip__inner">
+            <div class="ds-trust-strip__item">
+                <span class="ds-trust-strip__icon">⚡</span>
+                <div><strong>Instant Download</strong><span>Access files right after payment</span></div>
+            </div>
+            <div class="ds-trust-strip__item">
+                <span class="ds-trust-strip__icon">🔒</span>
+                <div><strong>Secure Checkout</strong><span>256-bit SSL encrypted</span></div>
+            </div>
+            <div class="ds-trust-strip__item">
+                <span class="ds-trust-strip__icon">💳</span>
+                <div><strong>PayPal Protected</strong><span>Buyer protection included</span></div>
+            </div>
+            <div class="ds-trust-strip__item">
+                <span class="ds-trust-strip__icon">🔄</span>
+                <div><strong>30-Day Refund</strong><span>No questions asked</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Latest Blog Posts -->
+    <section class="ds-latest-posts-section">
+        <div class="ds-section-header">
+            <h2 class="ds-section-title">Latest Reviews & Articles</h2>
+            <p class="ds-section-sub">Our latest insights, reviews, and guides</p>
+        </div>
+        <?php
+        $posts_query = new WP_Query( [
+            'post_type'      => 'post',
+            'posts_per_page' => 3,
+            'post_status'    => 'publish',
+        ] );
+        if ( $posts_query->have_posts() ) :
+            echo '<div class="ds-posts-grid">';
+            while ( $posts_query->have_posts() ) : $posts_query->the_post();
+                $cats = get_the_category();
+                $cat_name = ! empty( $cats ) ? $cats[0]->name : '';
+                ?>
+                <article class="ds-post-card" itemscope itemtype="https://schema.org/Article">
+                    <?php if ( has_post_thumbnail() ) : ?>
+                        <a href="<?php the_permalink(); ?>">
+                            <img class="ds-post-card__img" src="<?php echo esc_url( get_the_post_thumbnail_url( null, 'medium_large' ) ); ?>"
+                                 alt="<?php the_title_attribute(); ?>" loading="lazy" itemprop="image" />
+                        </a>
+                    <?php endif; ?>
+                    <div class="ds-post-card__body">
+                        <?php if ( $cat_name ) : ?>
+                            <span class="ds-post-card__cat"><?php echo esc_html( $cat_name ); ?></span>
+                        <?php endif; ?>
+                        <h3 class="ds-post-card__title" itemprop="headline">
+                            <a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
+                        </h3>
+                        <p class="ds-post-card__excerpt"><?php echo wp_trim_words( get_the_excerpt(), 20 ); ?></p>
+                        <span class="ds-post-card__meta">
+                            <time datetime="<?php echo get_the_date( 'c' ); ?>" itemprop="datePublished"><?php echo get_the_date(); ?></time>
+                            · <?php echo get_the_author(); ?>
+                        </span>
+                    </div>
+                </article>
+                <?php
+            endwhile;
+            echo '</div>';
+            wp_reset_postdata();
+        endif;
+        ?>
+    </section>
+
+    <!-- Featured Products -->
+    <section class="ds-featured-section">
+        <div class="ds-section-header">
+            <h2 class="ds-section-title">Digital Products</h2>
+            <p class="ds-section-sub">Download instantly, use forever</p>
+        </div>
+        <?php
+        $featured = wc_get_products( [ 'status' => 'publish', 'featured' => true, 'limit' => 1 ] );
+        if ( ! empty( $featured ) ) {
+            echo do_shortcode( '[products limit="6" columns="3" visibility="featured"]' );
+        } else {
+            echo do_shortcode( '[products limit="6" columns="3" orderby="date"]' );
+        }
+        ?>
+    </section>
+
+    <!-- CTA -->
+    <section class="ds-cta-section">
+        <div class="ds-cta-section__inner">
+            <h2>Ready to get started?</h2>
+            <p>Browse all products and find exactly what you need.</p>
+            <a href="<?php echo esc_url( get_permalink( wc_get_page_id( 'shop' ) ) ); ?>" class="ds-btn ds-btn--primary ds-btn--lg">
+                View All Products →
+            </a>
+        </div>
+    </section>
+
+    <?php
+    return ob_get_clean();
+}
+
+// Hook for Storefront homepage template
+add_action( 'homepage', function () {
+    echo do_shortcode( '[ds_homepage]' );
+}, 10 );
+
+// ═══════════════════════════════════════════════════════════════════
+// B. SINGLE PRODUCT PAGE
+// ═══════════════════════════════════════════════════════════════════
+
+add_action( 'init', function () {
     remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_rating', 10 );
-
-    // Remove meta (category, tags) — we replace it with a cleaner version
     remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_meta', 40 );
-
-    // Remove default sharing links
     remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_sharing', 50 );
-
-    // Remove "Additional Information" tab (irrelevant for digital products)
     add_filter( 'woocommerce_product_tabs', function ( $tabs ) {
         unset( $tabs['additional_information'] );
         return $tabs;
     } );
 } );
 
-// B2. Add badge ribbon ABOVE title (e.g. "Best Seller", "New")
 add_action( 'woocommerce_single_product_summary', 'ds_product_badge', 3 );
 function ds_product_badge(): void {
     global $product;
     if ( ! $product ) return;
-
-    // Read from custom product meta field "_ds_badge" (set via ACF or custom meta box)
     $badge = get_post_meta( $product->get_id(), '_ds_badge', true );
     if ( ! $badge ) $badge = $product->is_featured() ? 'Featured' : '';
     if ( ! $badge ) return;
-
-    printf(
-        '<span class="ds-product-badge">%s</span>',
-        esc_html( $badge )
-    );
+    printf( '<span class="ds-product-badge">%s</span>', esc_html( $badge ) );
 }
 
-// B3. Add a feature checklist AFTER the excerpt (before Add to Cart)
 add_action( 'woocommerce_single_product_summary', 'ds_product_feature_list', 25 );
 function ds_product_feature_list(): void {
     global $product;
     if ( ! $product ) return;
-
-    // Read features from custom meta (comma-separated or JSON array)
-    $raw      = get_post_meta( $product->get_id(), '_ds_features', true );
-    $features = $raw ? array_filter( array_map( 'trim', explode( "\n", $raw ) ) ) : [];
-
-    // Fallback defaults for digital products
-    if ( empty( $features ) ) {
-        $features = [
-            'Instant download after payment',
-            'Lifetime access — no subscription',
-            'Compatible with all major platforms',
-            '30-day money-back guarantee',
-        ];
-    }
-
+    $raw = get_post_meta( $product->get_id(), '_ds_features', true );
+    $features = $raw ? array_filter( array_map( 'trim', explode( "\n", $raw ) ) ) : [
+        'Instant download after payment',
+        'Lifetime access — no subscription',
+        'Compatible with all major platforms',
+        '30-day money-back guarantee',
+    ];
     echo '<ul class="ds-product-features">';
-    foreach ( $features as $feature ) {
-        printf( '<li>%s</li>', esc_html( $feature ) );
-    }
+    foreach ( $features as $f ) printf( '<li>%s</li>', esc_html( $f ) );
     echo '</ul>';
 }
 
-// B4. Add trust badges AFTER the Add to Cart button
 add_action( 'woocommerce_single_product_summary', 'ds_trust_badges', 35 );
 function ds_trust_badges(): void {
     $badges = [
@@ -134,296 +344,142 @@ function ds_trust_badges(): void {
         [ 'icon' => '💳', 'text' => 'PayPal protected' ],
         [ 'icon' => '🔄', 'text' => '30-day refund' ],
     ];
-
     echo '<div class="ds-trust-badges">';
-    foreach ( $badges as $badge ) {
-        printf(
-            '<span class="badge"><span>%s</span> %s</span>',
-            esc_html( $badge['icon'] ),
-            esc_html( $badge['text'] )
-        );
-    }
+    foreach ( $badges as $b ) printf( '<span class="badge"><span>%s</span> %s</span>', esc_html( $b['icon'] ), esc_html( $b['text'] ) );
     echo '</div>';
 }
 
-// B5. Add a "File details" section AFTER the tabs (download info bar)
 add_action( 'woocommerce_after_single_product_summary', 'ds_download_details_bar', 15 );
 function ds_download_details_bar(): void {
     global $product;
     if ( ! $product || ! $product->is_downloadable() ) return;
-
-    $file_size   = get_post_meta( $product->get_id(), '_ds_file_size', true )   ?: '—';
-    $file_format = get_post_meta( $product->get_id(), '_ds_file_format', true ) ?: 'ZIP';
-    $version     = get_post_meta( $product->get_id(), '_ds_version', true )      ?: '1.0';
-    $updated     = get_post_meta( $product->get_id(), '_ds_updated', true )       ?: get_the_modified_date();
-
-    echo '<div class="ds-file-info-bar">';
-    echo '<div class="ds-file-info-bar__inner">';
     $items = [
-        [ 'label' => 'Format',       'value' => $file_format ],
-        [ 'label' => 'File size',    'value' => $file_size ],
-        [ 'label' => 'Version',      'value' => $version ],
-        [ 'label' => 'Last updated', 'value' => $updated ],
+        [ 'label' => 'Format',       'value' => get_post_meta( $product->get_id(), '_ds_file_format', true ) ?: 'ZIP' ],
+        [ 'label' => 'File size',    'value' => get_post_meta( $product->get_id(), '_ds_file_size', true ) ?: '—' ],
+        [ 'label' => 'Version',      'value' => get_post_meta( $product->get_id(), '_ds_version', true ) ?: '1.0' ],
+        [ 'label' => 'Last updated', 'value' => get_post_meta( $product->get_id(), '_ds_updated', true ) ?: get_the_modified_date() ],
     ];
-    foreach ( $items as $item ) {
-        printf(
-            '<div class="ds-file-info-item"><span class="label">%s</span><span class="value">%s</span></div>',
-            esc_html( $item['label'] ),
-            esc_html( $item['value'] )
-        );
-    }
+    echo '<div class="ds-file-info-bar"><div class="ds-file-info-bar__inner">';
+    foreach ( $items as $i ) printf( '<div class="ds-file-info-item"><span class="label">%s</span><span class="value">%s</span></div>', esc_html( $i['label'] ), esc_html( $i['value'] ) );
     echo '</div></div>';
 }
 
-// B6. Rename the "Description" tab to "Overview"
 add_filter( 'woocommerce_product_tabs', function ( $tabs ) {
-    if ( isset( $tabs['description'] ) ) {
-        $tabs['description']['title'] = __( 'Overview', 'digital-store' );
-    }
-    if ( isset( $tabs['reviews'] ) ) {
-        $tabs['reviews']['title'] = __( 'Reviews', 'digital-store' );
-    }
+    if ( isset( $tabs['description'] ) ) $tabs['description']['title'] = __( 'Overview', 'digital-store' );
+    if ( isset( $tabs['reviews'] ) ) $tabs['reviews']['title'] = __( 'Reviews', 'digital-store' );
     return $tabs;
 } );
 
-// B7. Add a custom "Changelog" tab for digital products
 add_filter( 'woocommerce_product_tabs', function ( $tabs ) {
     global $product;
     if ( ! $product ) return $tabs;
-
     $changelog = get_post_meta( $product->get_id(), '_ds_changelog', true );
     if ( ! $changelog ) return $tabs;
-
     $tabs['ds_changelog'] = [
-        'title'    => __( 'Changelog', 'digital-store' ),
-        'priority' => 25,
+        'title' => __( 'Changelog', 'digital-store' ), 'priority' => 25,
         'callback' => function () use ( $changelog ) {
-            echo '<div class="ds-changelog">';
-            echo wp_kses_post( wpautop( $changelog ) );
-            echo '</div>';
+            echo '<div class="ds-changelog">' . wp_kses_post( wpautop( $changelog ) ) . '</div>';
         },
     ];
-
     return $tabs;
 } );
 
-// B8. Replace default "Related Products" header text
-add_filter( 'woocommerce_product_related_products_heading', fn() =>
-    __( 'You might also like', 'digital-store' )
-);
-
-// B9. Limit related products to 3
+add_filter( 'woocommerce_product_related_products_heading', fn() => __( 'You might also like', 'digital-store' ) );
 add_filter( 'woocommerce_output_related_products_args', function ( $args ) {
-    $args['posts_per_page'] = 3;
-    $args['columns']        = 3;
-    return $args;
+    $args['posts_per_page'] = 3; $args['columns'] = 3; return $args;
 } );
 
 // ═══════════════════════════════════════════════════════════════════
-// C. CHECKOUT PAGE — WooCommerce Action Hooks
-//
-//  Hook Execution Order:
-//  woocommerce_before_checkout_form         (10)
-//  woocommerce_checkout_before_customer_details
-//  woocommerce_checkout_billing             (10)
-//  woocommerce_checkout_shipping            (10)  ← removed for digital
-//  woocommerce_checkout_after_customer_details
-//  woocommerce_checkout_before_order_review (10)
-//  woocommerce_review_order_before_cart_contents
-//  woocommerce_review_order_after_cart_contents
-//  woocommerce_review_order_before_payment  (10)
-//  woocommerce_review_order_after_payment   (10)
-//  woocommerce_checkout_after_order_review  (10)
-//  woocommerce_after_checkout_form          (10)
+// C. CHECKOUT
 // ═══════════════════════════════════════════════════════════════════
 
-// C1. Add a progress indicator at the top of the checkout
-add_action( 'woocommerce_before_checkout_form', 'ds_checkout_progress_bar', 5 );
-function ds_checkout_progress_bar(): void {
+add_action( 'woocommerce_before_checkout_form', function () {
     ?>
     <div class="ds-checkout-steps" aria-label="Checkout steps">
-        <div class="ds-checkout-steps__step is-active">
-            <span class="step-num">1</span>
-            <span class="step-label"><?php esc_html_e( 'Cart', 'digital-store' ); ?></span>
-        </div>
+        <div class="ds-checkout-steps__step is-active"><span class="step-num">1</span><span class="step-label">Cart</span></div>
         <div class="ds-checkout-steps__divider"></div>
-        <div class="ds-checkout-steps__step is-active is-current">
-            <span class="step-num">2</span>
-            <span class="step-label"><?php esc_html_e( 'Checkout', 'digital-store' ); ?></span>
-        </div>
+        <div class="ds-checkout-steps__step is-active is-current"><span class="step-num">2</span><span class="step-label">Checkout</span></div>
         <div class="ds-checkout-steps__divider"></div>
-        <div class="ds-checkout-steps__step">
-            <span class="step-num">3</span>
-            <span class="step-label"><?php esc_html_e( 'Confirmation', 'digital-store' ); ?></span>
-        </div>
+        <div class="ds-checkout-steps__step"><span class="step-num">3</span><span class="step-label">Done</span></div>
     </div>
     <?php
-}
+}, 5 );
 
-// C2. Change checkout page section headings to match SaaS style
 add_filter( 'woocommerce_checkout_fields', function ( $fields ) {
-    // Remove "First name / Last name" split — replace with full name for digital
-    // (optional: combine into one field)
     if ( isset( $fields['billing']['billing_company'] ) ) {
-        // Make "Company" optional and less prominent
         $fields['billing']['billing_company']['required'] = false;
-        $fields['billing']['billing_company']['class']    = [ 'form-row-wide' ];
     }
-
-    // For digital products, remove shipping-related billing fields
-    $remove_billing = [ 'billing_address_1', 'billing_address_2', 'billing_city', 'billing_postcode', 'billing_state' ];
-    foreach ( $remove_billing as $field ) {
-        if ( isset( $fields['billing'][ $field ] ) ) {
-            $fields['billing'][ $field ]['required'] = false;
-            $fields['billing'][ $field ]['class']    = [ 'form-row-wide', 'ds-optional-field' ];
-        }
+    foreach ( [ 'billing_address_1', 'billing_address_2', 'billing_city', 'billing_postcode', 'billing_state' ] as $f ) {
+        if ( isset( $fields['billing'][ $f ] ) ) $fields['billing'][ $f ]['required'] = false;
     }
-
     return $fields;
 } );
 
-// C3. Add a "Secure Checkout" trust banner before the payment section
-add_action( 'woocommerce_review_order_before_payment', 'ds_secure_payment_badge' );
-function ds_secure_payment_badge(): void {
-    echo '<div class="ds-secure-badge">';
-    echo '🔒 <strong>' . esc_html__( 'Secure Checkout', 'digital-store' ) . '</strong>';
-    echo ' — ' . esc_html__( '256-bit SSL encryption · PayPal Buyer Protection', 'digital-store' );
-    echo '</div>';
-}
-
-// C4. Customize the "Place Order" button text
-add_filter( 'woocommerce_order_button_text', function () {
-    return __( '🛒 Complete Purchase', 'digital-store' );
+add_action( 'woocommerce_review_order_before_payment', function () {
+    echo '<div class="ds-secure-badge">🔒 <strong>Secure Checkout</strong> — 256-bit SSL · PayPal Buyer Protection</div>';
 } );
 
-// C5. Add terms notice above the Place Order button
-add_action( 'woocommerce_review_order_after_payment', 'ds_checkout_terms_note', 5 );
-function ds_checkout_terms_note(): void {
-    $terms_url   = get_privacy_policy_url();
-    $refund_url  = get_permalink( wc_get_page_id( 'terms' ) );
+add_filter( 'woocommerce_order_button_text', fn() => '🛒 Complete Purchase' );
 
-    printf(
-        '<p class="ds-checkout-terms">%s <a href="%s">%s</a> %s <a href="%s">%s</a>.</p>',
-        esc_html__( 'By completing this purchase you agree to our', 'digital-store' ),
-        esc_url( $refund_url ),
-        esc_html__( 'Terms of Service', 'digital-store' ),
-        esc_html__( 'and', 'digital-store' ),
-        esc_url( $terms_url ),
-        esc_html__( 'Privacy Policy', 'digital-store' )
-    );
-}
-
-// C6. Add satisfaction guarantee below order review
-add_action( 'woocommerce_after_checkout_form', 'ds_guarantee_strip' );
-function ds_guarantee_strip(): void {
-    $items = [
-        '✓ 30-day money-back guarantee',
-        '✓ Instant download access',
-        '✓ Lifetime product updates',
-        '✓ Priority email support',
-    ];
+add_action( 'woocommerce_after_checkout_form', function () {
+    $items = [ '✓ 30-day money-back guarantee', '✓ Instant download', '✓ Lifetime updates', '✓ Email support' ];
     echo '<div class="ds-guarantee-strip">';
-    foreach ( $items as $item ) {
-        printf( '<span class="ds-guarantee-strip__item">%s</span>', esc_html( $item ) );
-    }
+    foreach ( $items as $i ) printf( '<span class="ds-guarantee-strip__item">%s</span>', esc_html( $i ) );
     echo '</div>';
-}
+} );
 
 // ═══════════════════════════════════════════════════════════════════
-// D. CART PAGE — Minor Hooks
+// D. SHOP / ARCHIVE
 // ═══════════════════════════════════════════════════════════════════
 
-// D1. Custom empty cart message
-add_filter( 'woocommerce_empty_cart_message', fn() =>
-    '<span class="cart-empty-icon">🛒</span><p>' .
-    esc_html__( 'Your cart is empty — browse our digital products!', 'digital-store' ) .
-    '</p>'
-);
-
-// D2. Add "Continue Shopping" button to empty cart
-add_action( 'woocommerce_cart_is_empty', function () {
-    $shop_url = get_permalink( wc_get_page_id( 'shop' ) );
-    wc_get_template( 'global/link-button.php', [
-        'url'   => $shop_url,
-        'label' => __( '← Browse Products', 'digital-store' ),
-        'class' => 'button ds-continue-shopping',
-    ] );
-}, 20 );
-
-// ═══════════════════════════════════════════════════════════════════
-// E. SHOP / ARCHIVE PAGE
-// ═══════════════════════════════════════════════════════════════════
-
-// E1. Remove default WooCommerce breadcrumb
 remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
 
-// E2. Add a custom hero banner above the shop loop
-add_action( 'woocommerce_before_shop_loop', 'ds_shop_hero', 5 );
-function ds_shop_hero(): void {
+add_action( 'woocommerce_before_shop_loop', function () {
     if ( ! is_shop() ) return;
-    $headline = get_option( '_ds_shop_headline', __( 'Digital Products', 'digital-store' ) );
-    $sub      = get_option( '_ds_shop_subheadline', __( 'Download instantly. Use forever.', 'digital-store' ) );
     ?>
     <div class="ds-shop-hero">
-        <h1 class="ds-shop-hero__title"><?php echo esc_html( $headline ); ?></h1>
-        <p  class="ds-shop-hero__sub"><?php echo esc_html( $sub ); ?></p>
+        <h1 class="ds-shop-hero__title">Digital Products</h1>
+        <p class="ds-shop-hero__sub">Download instantly. Use forever.</p>
     </div>
     <?php
-}
+}, 5 );
 
-// E3. Change "Add to Cart" button text for downloadable products
 add_filter( 'woocommerce_product_add_to_cart_text', function ( $text, $product ) {
-    if ( $product->is_downloadable() || $product->is_virtual() ) {
-        return __( 'Get Instant Access', 'digital-store' );
-    }
-    return $text;
+    return ( $product->is_downloadable() || $product->is_virtual() ) ? 'Get Instant Access' : $text;
 }, 10, 2 );
 
 add_filter( 'woocommerce_product_single_add_to_cart_text', function ( $text, $product ) {
-    if ( $product->is_downloadable() || $product->is_virtual() ) {
-        return __( '⬇ Buy & Download Now', 'digital-store' );
-    }
-    return $text;
+    return ( $product->is_downloadable() || $product->is_virtual() ) ? '⬇ Buy & Download Now' : $text;
 }, 10, 2 );
 
-// E4. Set products per page
 add_filter( 'loop_shop_per_page', fn() => 12, 20 );
 
 // ═══════════════════════════════════════════════════════════════════
-// F. THANK YOU / ORDER RECEIVED PAGE
+// E. THANK YOU
 // ═══════════════════════════════════════════════════════════════════
 
-// F1. Custom thank-you heading
 add_filter( 'woocommerce_thankyou_order_received_text', function ( $text, $order ) {
     if ( $order ) {
-        $name = $order->get_billing_first_name();
-        return sprintf(
-            __( '🎉 Thank you, %s! Your purchase is confirmed and your download links have been emailed to you.', 'digital-store' ),
-            esc_html( $name )
-        );
+        return sprintf( '🎉 Thank you, %s! Your download links have been emailed to you.', esc_html( $order->get_billing_first_name() ) );
     }
     return $text;
 }, 10, 2 );
 
-// F2. Show download links prominently on the thank-you page
-add_action( 'woocommerce_thankyou', 'ds_thankyou_download_links', 20 );
-function ds_thankyou_download_links( int $order_id ): void {
-    $order     = wc_get_order( $order_id );
+add_action( 'woocommerce_thankyou', function ( int $order_id ) {
+    $order = wc_get_order( $order_id );
     $downloads = $order ? $order->get_downloadable_items() : [];
-
     if ( empty( $downloads ) ) return;
-
-    echo '<section class="ds-thankyou-downloads">';
-    echo '<h3>' . esc_html__( '⬇ Your Downloads', 'digital-store' ) . '</h3>';
-    echo '<ul class="ds-download-list">';
+    echo '<section class="ds-thankyou-downloads"><h3>⬇ Your Downloads</h3><ul class="ds-download-list">';
     foreach ( $downloads as $dl ) {
-        printf(
-            '<li><a class="button" href="%s">%s — %s</a></li>',
-            esc_url( $dl['download_url'] ),
-            esc_html( $dl['product_name'] ),
-            esc_html( $dl['download_name'] )
-        );
+        printf( '<li><a class="button" href="%s">%s — %s</a></li>', esc_url( $dl['download_url'] ), esc_html( $dl['product_name'] ), esc_html( $dl['download_name'] ) );
     }
-    echo '</ul>';
-    echo '</section>';
-}
+    echo '</ul></section>';
+}, 20 );
+
+// ═══════════════════════════════════════════════════════════════════
+// F. EMPTY CART
+// ═══════════════════════════════════════════════════════════════════
+
+add_filter( 'woocommerce_empty_cart_message', fn() =>
+    '<span class="cart-empty-icon">🛒</span><p>Your cart is empty — browse our digital products!</p>'
+);

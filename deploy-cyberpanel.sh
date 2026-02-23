@@ -17,43 +17,34 @@ DOMAIN="register-global.com"
 WP_PATH="/home/${DOMAIN}/public_html"   # Đường dẫn WordPress trên CyberPanel
 # ─────────────────────────────────────────────────────────────
 
-THEME_NAME="digital-store"
-SRC_DIR="./src"
+THEME_LOCAL="./src/themes/digital-store"
+MUPLUGIN_LOCAL="./src/mu-plugins/digital-store.php"
 
 echo "🚀 Bắt đầu deploy lên ${SERVER_IP} (${DOMAIN})..."
 
-# 1. Tạo thư mục theme trên server
+# 1. Upload child theme
 echo ""
-echo "📦 Tạo thư mục theme và upload files..."
-ssh "${SERVER_USER}@${SERVER_IP}" "mkdir -p ${WP_PATH}/wp-content/themes/${THEME_NAME}"
-ssh "${SERVER_USER}@${SERVER_IP}" "mkdir -p ${WP_PATH}/wp-content/mu-plugins"
+echo "📦 Upload theme digital-store..."
+scp -r "${THEME_LOCAL}" "${SERVER_USER}@${SERVER_IP}:${WP_PATH}/wp-content/themes/"
 
-# 2. Upload theme files (style.css, functions.php, screenshot-readme.php)
-scp "${SRC_DIR}/style.css" "${SERVER_USER}@${SERVER_IP}:${WP_PATH}/wp-content/themes/${THEME_NAME}/"
-scp "${SRC_DIR}/functions.php" "${SERVER_USER}@${SERVER_IP}:${WP_PATH}/wp-content/themes/${THEME_NAME}/"
-scp "${SRC_DIR}/screenshot-readme.php" "${SERVER_USER}@${SERVER_IP}:${WP_PATH}/wp-content/themes/${THEME_NAME}/"
-
-echo "   ✅ Theme files uploaded."
-
-# 3. Upload MU-Plugin
+# 2. Upload MU-Plugin
 echo ""
 echo "🔌 Upload MU-Plugin digital-store.php..."
-scp "${SRC_DIR}/digital-store.php" "${SERVER_USER}@${SERVER_IP}:${WP_PATH}/wp-content/mu-plugins/"
+ssh "${SERVER_USER}@${SERVER_IP}" "mkdir -p ${WP_PATH}/wp-content/mu-plugins"
+scp "${MUPLUGIN_LOCAL}" "${SERVER_USER}@${SERVER_IP}:${WP_PATH}/wp-content/mu-plugins/"
 
-echo "   ✅ MU-Plugin uploaded."
-
-# 4. Fix quyền thư mục
+# 3. Fix quyền thư mục
 echo ""
 echo "🔒 Cấp quyền đúng cho files..."
 ssh "${SERVER_USER}@${SERVER_IP}" bash <<EOF
-  chown -R nobody:nogroup ${WP_PATH}/wp-content/themes/${THEME_NAME} 2>/dev/null || \
-  chown -R www-data:www-data ${WP_PATH}/wp-content/themes/${THEME_NAME} 2>/dev/null || true
+  chown -R nobody:nogroup ${WP_PATH}/wp-content/themes/digital-store 2>/dev/null || \
+  chown -R www-data:www-data ${WP_PATH}/wp-content/themes/digital-store 2>/dev/null || true
 
   chown -R nobody:nogroup ${WP_PATH}/wp-content/mu-plugins/ 2>/dev/null || \
   chown -R www-data:www-data ${WP_PATH}/wp-content/mu-plugins/ 2>/dev/null || true
 
-  find ${WP_PATH}/wp-content/themes/${THEME_NAME} -type f -exec chmod 644 {} \;
-  find ${WP_PATH}/wp-content/themes/${THEME_NAME} -type d -exec chmod 755 {} \;
+  find ${WP_PATH}/wp-content/themes/digital-store -type f -exec chmod 644 {} \;
+  find ${WP_PATH}/wp-content/themes/digital-store -type d -exec chmod 755 {} \;
   find ${WP_PATH}/wp-content/mu-plugins -type f -exec chmod 644 {} \;
 
   echo "✅ Quyền đã được cấp."
@@ -62,8 +53,9 @@ EOF
 echo ""
 echo "✅ Deploy hoàn tất!"
 echo ""
-echo "Bước tiếp theo trong WordPress Admin (${WP_PATH}):"
+echo "Bước tiếp theo trong WordPress Admin:"
 echo "  1. Appearance → Themes → Kích hoạt 'Digital Store'"
-echo "  2. Plugins → Cài WooCommerce → Kích hoạt"
-echo "  3. WooCommerce → Settings → Payments → Cấu hình PayPal"
-echo "  4. URL: https://${DOMAIN}/wp-admin"
+echo "  2. Tạo page 'Home', thêm shortcode [ds_homepage]"
+echo "  3. Settings → Reading → Static page → Chọn 'Home'"
+echo "  4. WooCommerce → Settings → Payments → Cấu hình PayPal"
+echo "  5. URL: https://${DOMAIN}/wp-admin"
