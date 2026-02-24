@@ -1,0 +1,114 @@
+<!-- wp:template-part {"slug":"header","area":"header","tagName":"header"} /-->
+
+<!-- wp:group {"tagName":"main","align":"full","layout":{"type":"constrained"}} -->
+<main class="wp-block-group alignfull">
+
+	<!-- Breadcrumbs -->
+	<!-- wp:group {"align":"wide","style":{"spacing":{"padding":{"top":"var:preset|spacing|20","bottom":"var:preset|spacing|10"}}},"layout":{"type":"constrained"}} -->
+	<div class="wp-block-group alignwide" style="padding-top:var(--wp--preset--spacing--20);padding-bottom:var(--wp--preset--spacing--10)">
+		<!-- wp:woocommerce/breadcrumbs {"style":{"typography":{"fontSize":"0.875rem"},"color":{"text":"var:preset|color|contrast-2"}}} /-->
+	</div>
+	<!-- /wp:group -->
+
+	<!-- Store notices -->
+	<!-- wp:woocommerce/store-notices /-->
+
+	<!-- Product layout: Image left | Details right -->
+	<!-- wp:columns {"align":"wide","isStackedOnMobile":true,"style":{"spacing":{"padding":{"top":"var:preset|spacing|30","bottom":"var:preset|spacing|50"},"blockGap":{"left":"var:preset|spacing|50"}}}} -->
+	<div class="wp-block-columns alignwide" style="padding-top:var(--wp--preset--spacing--30);padding-bottom:var(--wp--preset--spacing--50)">
+
+		<!-- Left: Product image gallery -->
+		<!-- wp:column {"width":"55%"} -->
+		<div class="wp-block-column" style="flex-basis:55%">
+			<!-- wp:woocommerce/product-image-gallery /-->
+		</div>
+		<!-- /wp:column -->
+
+		<!-- Right: Product details -->
+		<!-- wp:column {"width":"45%"} -->
+		<div class="wp-block-column" style="flex-basis:45%">
+
+			<!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|20"}},"layout":{"type":"flex","orientation":"vertical"}} -->
+			<div class="wp-block-group">
+
+				<!-- Category breadcrumb -->
+				<!-- wp:post-terms {"term":"product_cat","className":"is-style-pill"} /-->
+
+				<!-- Product title -->
+				<!-- wp:post-title {"level":1,"style":{"typography":{"lineHeight":"1.2","fontWeight":"800"}}} /-->
+
+				<!-- Rating -->
+				<!-- wp:woocommerce/product-rating /-->
+
+				<!-- Price -->
+				<!-- wp:woocommerce/product-price {"style":{"typography":{"fontSize":"1.75rem","fontWeight":"700"},"color":{"text":"var:preset|color|accent"}}} /-->
+
+				<!-- Short description -->
+				<!-- wp:woocommerce/product-summary /-->
+
+				<!-- wp:separator {"style":{"color":{"background":"var:preset|color|contrast-3"}}} -->
+				<hr class="wp-block-separator has-alpha-channel-opacity" style="background-color:var(--wp--preset--color--contrast-3);border-color:var(--wp--preset--color--contrast-3)" />
+				<!-- /wp:separator -->
+
+				<!-- Add to cart -->
+				<!-- wp:woocommerce/add-to-cart-with-options /-->
+
+				<!-- wp:separator {"style":{"color":{"background":"var:preset|color|contrast-3"}}} -->
+				<hr class="wp-block-separator has-alpha-channel-opacity" style="background-color:var(--wp--preset--color--contrast-3);border-color:var(--wp--preset--color--contrast-3)" />
+				<!-- /wp:separator -->
+
+				<!-- Trust badges: delivery / returns / warranty -->
+				<!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|10"}},"layout":{"type":"flex","orientation":"vertical"}} -->
+				<div class="wp-block-group">
+					<!-- wp:paragraph {"style":{"typography":{"fontSize":"0.875rem"},"color":{"text":"var:preset|color|contrast-2"}}} -->
+					<p style="font-size:0.875rem;color:var(--wp--preset--color--contrast-2)">&#x1F69A; Free shipping on orders over $50</p>
+					<!-- /wp:paragraph -->
+					<!-- wp:paragraph {"style":{"typography":{"fontSize":"0.875rem"},"color":{"text":"var:preset|color|contrast-2"}}} -->
+					<p style="font-size:0.875rem;color:var(--wp--preset--color--contrast-2)">&#x21A9; 30-day easy returns</p>
+					<!-- /wp:paragraph -->
+					<!-- wp:paragraph {"style":{"typography":{"fontSize":"0.875rem"},"color":{"text":"var:preset|color|contrast-2"}}} -->
+					<p style="font-size:0.875rem;color:var(--wp--preset--color--contrast-2)">&#x1F6E1; 1-year warranty included</p>
+					<!-- /wp:paragraph -->
+				</div>
+				<!-- /wp:group -->
+
+				<!-- Product meta (SKU, categories, tags) -->
+				<!-- wp:woocommerce/product-meta {"style":{"typography":{"fontSize":"0.875rem"},"color":{"text":"var:preset|color|contrast-2"}}} /-->
+
+			</div>
+			<!-- /wp:group -->
+
+		</div>
+		<!-- /wp:column -->
+
+	</div>
+	<!-- /wp:columns -->
+
+	<!-- Product tabs: Description, Reviews, Specs -->
+	<!-- wp:group {"align":"wide","style":{"spacing":{"padding":{"top":"var:preset|spacing|10","bottom":"var:preset|spacing|50"}},"border":{"top":{"color":"var:preset|color|contrast-3","style":"solid","width":"1px"}}},"layout":{"type":"constrained"}} -->
+	<div class="wp-block-group alignwide" style="border-top:1px solid var(--wp--preset--color--contrast-3);padding-top:var(--wp--preset--spacing--10);padding-bottom:var(--wp--preset--spacing--50)">
+		<!-- wp:woocommerce/product-tabs /-->
+	</div>
+	<!-- /wp:group -->
+
+	<!-- Related Products -->
+	<!-- wp:group {"align":"full","style":{"color":{"background":"var:preset|color|base"},"spacing":{"padding":{"top":"var:preset|spacing|50","bottom":"var:preset|spacing|50"}}},"layout":{"type":"constrained"}} -->
+	<div class="wp-block-group alignfull" style="background-color:var(--wp--preset--color--base);padding-top:var(--wp--preset--spacing--50);padding-bottom:var(--wp--preset--spacing--50)">
+
+		<!-- wp:heading {"level":2,"textAlign":"center","style":{"typography":{"fontWeight":"700"}}} -->
+		<h2 class="wp-block-heading has-text-align-center">You May Also Like</h2>
+		<!-- /wp:heading -->
+
+		<!-- wp:spacer {"height":"var:preset|spacing|30"} -->
+		<div style="height:var(--wp--preset--spacing--30)" aria-hidden="true" class="wp-block-spacer"></div>
+		<!-- /wp:spacer -->
+
+		<!-- wp:woocommerce/related-products {"columns":4,"rows":1} /-->
+
+	</div>
+	<!-- /wp:group -->
+
+</main>
+<!-- /wp:group -->
+
+<!-- wp:template-part {"slug":"footer","area":"footer","tagName":"footer"} /-->

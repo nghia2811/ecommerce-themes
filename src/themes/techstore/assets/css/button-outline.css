@@ -1,0 +1,14 @@
+/**
+ * TechStore – Outline button variant
+ * Loaded only for blocks that use the outline style.
+ */
+.wp-block-button.is-style-outline .wp-block-button__link {
+	background-color: transparent;
+	border: 1.5px solid var(--wp--preset--color--accent);
+	color: var(--wp--preset--color--accent);
+}
+
+.wp-block-button.is-style-outline .wp-block-button__link:hover {
+	background-color: var(--wp--preset--color--accent);
+	color: #ffffff;
+}
